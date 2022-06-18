@@ -16,9 +16,11 @@ Fixpoint evaluates_to t t' :=
   | _, _ => False
   end.
 
-Definition is_normal t := forall t', ~ evaluates_to t t'.
+Notation "s --> t" := (evaluates_to s t) (at level 70).
 
-Theorem if_if_evaluates t1 t1' t2 t3 : evaluates_to t1 t1' -> evaluates_to (if_t t1 t2 t3) (if_t t1' t2 t3).
+Definition is_normal t := forall t', ~ t --> t'.
+
+Theorem if_if_evaluates t1 t1' t2 t3 : t1 --> t1' -> (if_t t1 t2 t3) --> (if_t t1' t2 t3).
 Proof.
   destruct t1.
   - simpl.
@@ -34,7 +36,7 @@ Proof.
       * exact H.
 Qed.
 
-Theorem if_evaluates: forall t1 t2 t3, exists t', evaluates_to (if_t t1 t2 t3) t'.
+Theorem if_evaluates: forall t1 t2 t3, exists t', (if_t t1 t2 t3) --> t'.
 Proof.
   intro t1.
   induction t1.
@@ -69,7 +71,7 @@ Proof.
     + apply if_is_not_normal.
 Qed.
 
-Theorem determinacy : forall s t t', evaluates_to s t /\ evaluates_to s t' -> t = t'.
+Theorem determinacy : forall s t t', s --> t /\ s --> t' -> t = t'.
 Proof.
   induction s.
   - intros t t' [H H']. simpl in H. contradiction.
