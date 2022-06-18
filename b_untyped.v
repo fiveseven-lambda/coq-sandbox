@@ -68,3 +68,30 @@ Proof.
     + intro. unfold is_value. trivial.
     + apply if_is_not_normal.
 Qed.
+
+Theorem determinacy : forall s t t', evaluates_to s t /\ evaluates_to s t' -> t = t'.
+Proof.
+  induction s.
+  - intros t t' [H H']. simpl in H. contradiction.
+  - intros t t' [H H']. simpl in H. contradiction.
+  - destruct s1.
+    + simpl. intros t t' [H H']. rewrite <- H. exact H'.
+    + simpl. intros t t' [H H']. rewrite <- H. exact H'.
+    + destruct t.
+      * simpl. intros t' [H _]. contradiction.
+      * simpl. intros t' [H _]. contradiction.
+      * destruct t'.
+        ++ simpl. intros [_ H]. contradiction.
+        ++ simpl. intros [_ H]. contradiction.
+        ++ simpl. intros [(H2 & H3 & H1) (H'2 & H'3 & H'1)].
+           rewrite <- H2.
+           rewrite <- H3.
+           rewrite <- H'2.
+           rewrite <- H'3.
+           destruct (IHs1 t1 t'1).
+           split.
+           -- exact H1.
+           -- exact H'1.
+           -- reflexivity.
+Qed.
+
