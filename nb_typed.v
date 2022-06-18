@@ -101,3 +101,44 @@ Proof.
     + exact H.
   - contradiction.
 Qed.
+
+Theorem uniqueness t T1 T2: is_typed t T1 /\ is_typed t T2 -> T1 = T2.
+Proof.
+  induction t.
+  - intros [H1 H2].
+    apply inv_true in H1, H2.
+    rewrite H1, H2.
+    reflexivity.
+  - intros [H1 H2].
+    apply inv_false in H1, H2.
+    rewrite H1, H2.
+    reflexivity.
+  - intros [H1 H2].
+    apply inv_if in H1, H2.
+    apply IHt2.
+    split.
+    + apply H1.
+    + apply H2.
+  - intros [H1 H2].
+    apply inv_zero in H1, H2.
+    rewrite H1, H2.
+    reflexivity.
+  - intros [H1 H2].
+    apply inv_succ in H1, H2.
+    destruct H1 as [H1 _].
+    destruct H2 as [H2 _].
+    rewrite H1, H2.
+    reflexivity.
+  - intros [H1 H2].
+    apply inv_pred in H1, H2.
+    destruct H1 as [H1 _].
+    destruct H2 as [H2 _].
+    rewrite H1, H2.
+    reflexivity.
+  - intros [H1 H2].
+    apply inv_iszero in H1, H2.
+    destruct H1 as [H1 _].
+    destruct H2 as [H2 _].
+    rewrite H1, H2.
+    reflexivity.
+Qed.
