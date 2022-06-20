@@ -142,3 +142,64 @@ Proof.
     rewrite H1, H2.
     reflexivity.
 Qed.
+
+Goal forall t1 t2 t3 t1' t2' t3', if_t t1 t2 t3 = if_t t1' t2' t3' -> t1 = t1'.
+Proof.
+  intros t1 t2 t3 t1' t2' t3' H.
+  injection H.
+  intros H3 H2 H1.
+  exact H1.
+Qed.
+
+Goal forall t1 t2 t3, if_t t1 t2 t3 <> true_t.
+Proof.
+  intros.
+  discriminate.
+Qed.
+
+Goal
+  forall s1 s2 s3 t1 t2 t3 t1' t2' t3',
+  (evaluates_to s1 t1 /\ evaluates_to s1 t1' -> t1 = t1')
+  -> evaluates_to (if_t s1 s2 s3) (if_t t1 t2 t3)
+  /\ evaluates_to (if_t s1 s2 s3) (if_t t1' t2' t3')
+  -> t1 = t1'.
+Proof.
+  intros s1 s2 s3 t1 t2 t3 t1' t2' t3' IH [H H'].
+  destruct s1.
+  - simpl in H, H'.
+    rewrite H in H'.
+    injection H'.
+    intros H3 H2 H1.
+    exact H1.
+  - simpl in H, H'.
+    rewrite H in H'.
+    injection H'.
+    intros H3 H2 H1.
+    exact H1.
+  - apply IH.
+    split.
+    apply H.
+    apply H'.
+  - destruct H.
+    contradiction.
+  - destruct H, H'.
+    apply IH.
+    split.
+    apply H.
+    apply H1.
+  - destruct H, H'.
+    apply IH.
+    split.
+    apply H.
+    apply H1.
+  - destruct H, H'.
+    apply IH.
+    split.
+    apply H.
+    apply H1.
+Qed.
+
+Example Bad1: evaluates_to (iszero_t (succ_t (pred_t zero_t))) false_t.
+Proof. simpl. trivial. Qed.
+Example Bad2: evaluates_to (iszero_t (succ_t (pred_t zero_t))) (iszero_t (succ_t zero_t)).
+Proof. simpl. trivial. Qed.
