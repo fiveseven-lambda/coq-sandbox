@@ -1,51 +1,352 @@
+Inductive numeric_value :=
+  | nvZero
+  | nvSucc : numeric_value -> numeric_value.
+
 Inductive term :=
-  | true_t | false_t
-  | if_t : term -> term -> term -> term
-  | zero_t
-  | succ_t : term -> term
-  | pred_t : term -> term
-  | iszero_t : term -> term.
+  | tmTrue | tmFalse
+  | tmIf : term -> term -> term -> term
+  | tmNv : numeric_value -> term
+  | tmSucc : term -> term
+  | tmPred : term -> term
+  | tmIszero : term -> term.
 
-Fixpoint is_numeric_value t :=
-  match t with
-  | zero_t => True
-  | succ_t t1 => is_numeric_value t1
-  | _ => False
+Fixpoint evaluates_to s t :=
+  match s, t with
+  | tmIf tmTrue s2 _, t => s2 = t
+  | tmIf tmFalse _ s3, t => s3 = t
+  | tmIf s1 s2 s3, tmIf t1 t2 t3 => evaluates_to s1 t1 /\ s2 = t2 /\ s3 = t3
+  | tmSucc (tmNv sv), tmNv (nvSucc tv) => sv = tv
+  | tmSucc s1, tmSucc t1 => evaluates_to s1 t1
+  | tmPred (tmNv nvZero), tmNv nvZero => True
+  | tmPred (tmNv (nvSucc sv)), tmNv tv => sv = tv
+  | tmPred s1, tmPred t1 => evaluates_to s1 t1
+  | tmIszero (tmNv nvZero), tmTrue => True
+  | tmIszero (tmNv (nvSucc _)), tmFalse => True
+  | tmIszero s1, tmIszero t1 => evaluates_to s1 t1
+  | _, _ => False
   end.
 
-Definition is_value t :=
-  match t with
-  | true_t | false_t => True
-  | _ => is_numeric_value t
-  end.
+Theorem if_determinacy s1 s2 s3 t :
+    evaluates_to (tmIf s1 s2 s3) t
+    -> s1 = tmTrue /\ s2 = t
+    \/ s1 = tmFalse /\ s3 = t
+    \/ exists t1, t = tmIf t1 s2 s3 /\ evaluates_to s1 t1.
+Proof.
+  destruct s1.
+  - simpl. intro. left. split. reflexivity. exact H.
+  - simpl. intro. right. left. split. reflexivity. exact H.
+  - intro. right. right. destruct t.
+    + contradiction.
+    + contradiction.
+    + exists t1.
+      destruct H as [H1 [H2 H3]].
+      split.
+      * rewrite H2. rewrite H3. reflexivity.
+      * apply H1.
+    + contradiction.
+    + contradiction.
+    + contradiction.
+    + contradiction.
+  - intro. destruct t.
+    + contradiction.
+    + contradiction.
+    + simpl in H. destruct H. contradiction.
+    + contradiction.
+    + contradiction.
+    + contradiction.
+    + contradiction.
+  - intro. right. right. destruct t.
+    + contradiction.
+    + contradiction.
+    + exists t1.
+      destruct H as [H1 [H2 H3]].
+      split.
+      * rewrite H2. rewrite H3. reflexivity.
+      * apply H1.
+    + contradiction.
+    + contradiction.
+    + contradiction.
+    + contradiction.
+  - intro. right. right. destruct t.
+    + contradiction.
+    + contradiction.
+    + exists t1.
+      destruct H as [H1 [H2 H3]].
+      split.
+      * rewrite H2. rewrite H3. reflexivity.
+      * apply H1.
+    + contradiction.
+    + contradiction.
+    + contradiction.
+    + contradiction.
+  - intro. right. right. destruct t.
+    + contradiction.
+    + contradiction.
+    + exists t1.
+      destruct H as [H1 [H2 H3]].
+      split.
+      * rewrite H2. rewrite H3. reflexivity.
+      * apply H1.
+    + contradiction.
+    + contradiction.
+    + contradiction.
+    + contradiction.
+Qed.
+
+Theorem succ_determinacy s1 t :
+  evaluates_to (tmSucc s1) t
+  -> (exists sv, s1 = tmNv sv /\ t = tmNv (nvSucc sv))
+  \/ (exists t1, t = tmSucc t1 /\ evaluates_to s1 t1).
+Proof.
+  intro. destruct s1, t.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - right. exists t. split. reflexivity. apply H.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - left. exists n. split.
+      * reflexivity.
+      * destruct n0.
+        -- contradiction.
+        -- rewrite H. reflexivity.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - right. exists t. split. reflexivity. apply H.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - right. exists t. split. reflexivity. apply H.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - right. exists t. split. reflexivity. apply H.
+  - contradiction.
+  - contradiction.
+Qed.
+
+Theorem pred_determinacy s1 t :
+    evaluates_to (tmPred s1) t
+    -> s1 = tmNv nvZero /\ t = tmNv nvZero
+    \/ (exists nv, s1 = tmNv (nvSucc nv) /\ t = tmNv nv)
+    \/ (exists t1, t = tmPred t1 /\ evaluates_to s1 t1).
+Proof.
+  intro.
+  destruct s1, t.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - right. right. exists t. split. reflexivity. apply H.
+  - contradiction.
+  - destruct n. contradiction. contradiction.
+  - destruct n. contradiction. contradiction.
+  - destruct n. contradiction. contradiction.
+  - destruct n.
+    + left. split. reflexivity. destruct n0. reflexivity. contradiction.
+    + right. left. exists n. split. reflexivity. rewrite H. reflexivity.
+  - destruct n. contradiction. contradiction.
+  - destruct n. contradiction. contradiction.
+  - destruct n. contradiction. contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - right. right. exists t. split. reflexivity. apply H.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - right. right. exists t. split. reflexivity. apply H.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - right. right. exists t. split. reflexivity. apply H.
+  - contradiction.
+Qed.
+
+Theorem iszero_determinacy s1 t:
+  evaluates_to (tmIszero s1) t
+  -> s1 = tmNv nvZero /\ t = tmTrue
+  \/ (t = tmFalse /\ exists nv, s1 = tmNv (nvSucc nv))
+  \/ (exists t1, t = tmIszero t1 /\ evaluates_to s1 t1).
+Proof.
+  intro.
+  destruct s1, t.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - right. right. exists t. split. reflexivity. apply H.
+  - destruct n.
+    + left. split. reflexivity. reflexivity.
+    + contradiction.
+  - destruct n.
+    + contradiction.
+    + right. left. split. reflexivity. exists n. reflexivity.
+  - destruct n. contradiction. contradiction.
+  - destruct n. contradiction. contradiction.
+  - destruct n. contradiction. contradiction.
+  - destruct n. contradiction. contradiction.
+  - destruct n. contradiction. contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - right. right. exists t. split. reflexivity. apply H.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - right. right. exists t. split. reflexivity. apply H.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - contradiction.
+  - right. right. exists t. split. reflexivity. apply H.
+Qed.
+
+Theorem determinacy : forall s t t', evaluates_to s t /\ evaluates_to s t' -> t = t'.
+Proof.
+  induction s.
+  - intros t t' [H _]. contradiction.
+  - intros t t' [H _]. contradiction.
+  - intros t t' [H H'].
+    destruct (if_determinacy s1 s2 s3 t) as [[Hs1T Hs2]|[[Hs1F Hs3]|[t1[Ht Ht1]]]].
+    + exact H.
+    + rewrite Hs1T in H'. rewrite <- Hs2. apply H'.
+    + rewrite Hs1F in H'. rewrite <- Hs3. apply H'.
+    + destruct (if_determinacy s1 s2 s3 t') as [[Hs1T Hs2]|[[Hs1F Hs3]|[t1'[Ht' Ht1']]]].
+      * exact H'.
+      * rewrite Hs1T in H. rewrite <- H. exact Hs2.
+      * rewrite Hs1F in H. rewrite <- H. exact Hs3.
+      * rewrite Ht, Ht'. rewrite (IHs1 t1 t1'). reflexivity. split. exact Ht1. exact Ht1'.
+  - intros t t' [H _]. contradiction.
+  - intros t t' [H H'].
+    destruct (succ_determinacy s t, succ_determinacy s t') as ([[sv[Hs Ht]]|[t1[Ht Ht1]]], [[sv'[Hs' Ht']]|[t1'[Ht' Ht1']]]).
+    + exact H.
+    + exact H'.
+    + rewrite Hs in Hs'. injection Hs'. intro. rewrite Ht'. rewrite <- H0. exact Ht.
+    + rewrite Hs in Ht1'. contradiction.
+    + exact H'.
+    + rewrite Hs' in Ht1. contradiction.
+    + rewrite Ht, Ht'. rewrite (IHs t1 t1'). reflexivity. split. exact Ht1. exact Ht1'.
+  - intros t t' [H H'].
+    destruct (pred_determinacy s t, pred_determinacy s t') as ([[Hs Ht]|[[nv[Hs Ht]]|[t1[Ht Hs]]]], [[Hs' Ht']|[[nv'[Hs' Ht']]|[t1'[Ht' Hs']]]]).
+    + exact H.
+    + exact H'.
+    + rewrite Ht, Ht'. reflexivity.
+    + rewrite Hs in Hs'. discriminate.
+    + rewrite Hs in Hs'. contradiction.
+    + exact H'.
+    + rewrite Hs in Hs'. discriminate.
+    + rewrite Hs in Hs'. injection Hs'. intro. rewrite Ht, Ht', H0. reflexivity.
+    + rewrite Hs in Hs'. contradiction.
+    + exact H'.
+    + rewrite Hs' in Hs. contradiction.
+    + rewrite Hs' in Hs. contradiction.
+    + rewrite Ht, Ht', (IHs t1 t1'). reflexivity. split. exact Hs. exact Hs'.
+  - intros t t' [H H'].
+    destruct (iszero_determinacy s t, iszero_determinacy s t') as ([[Hs Ht]|[[Ht[nv Hs]]|[t1[Ht Hs]]]], [[Hs' Ht']|[[Ht'[nv' Hs']]|[t1'[Ht' Hs']]]]).
+    + exact H.
+    + exact H'.
+    + rewrite Ht, Ht'. reflexivity.
+    + rewrite Hs in Hs'. discriminate.
+    + rewrite Hs in Hs'. contradiction.
+    + exact H'.
+    + rewrite Hs in Hs'. discriminate.
+    + rewrite Ht, Ht'. reflexivity.
+    + rewrite Hs in Hs'. contradiction.
+    + exact H'.
+    + rewrite Hs' in Hs. contradiction.
+    + rewrite Hs' in Hs. contradiction.
+    + rewrite Ht, Ht', (IHs t1 t1'). reflexivity. split. exact Hs. exact Hs'.
+Qed.
 
 Variant type := Bool | Nat.
 
-Fixpoint evaluates_to t t' :=
-  match t, t' with
-  | if_t true_t t2 _, t2' => t2 = t2'
-  | if_t false_t _ t3, t3' => t3 = t3'
-  | if_t t1 t2 t3, if_t t1' t2' t3' => evaluates_to t1 t1' /\ t2 = t2' /\ t3 = t3'
-  | succ_t t1, succ_t t1' => evaluates_to t1 t1'
-  | pred_t zero_t, zero_t => True
-  | pred_t (succ_t t1), t1' => t1 = t1'
-  | pred_t t1, pred_t t1' => evaluates_to t1 t1'
-  | iszero_t zero_t, true_t => True
-  | iszero_t (succ_t t1), false_t => True
-  | iszero_t t1, iszero_t t1' => evaluates_to t1 t1'
-  | _, _ => False
-  end.
-
 Fixpoint is_typed t T :=
   match t, T with
-  | true_t, Bool | false_t, Bool => True
-  | if_t t1 t2 t3, T1 => is_typed t1 Bool /\ is_typed t2 T1 /\ is_typed t3 T1
-  | zero_t, Nat => True
-  | succ_t t1, Nat | pred_t t1, Nat | iszero_t t1, Bool => is_typed t1 Nat
+  | tmTrue, Bool | tmFalse, Bool => True
+  | tmIf t1 t2 t3, T1 => is_typed t1 Bool /\ is_typed t2 T1 /\ is_typed t3 T1
+  | tmNv _, Nat => True
+  | tmSucc t1, Nat | tmPred t1, Nat | tmIszero t1, Bool => is_typed t1 Nat
   | _, _ => False
   end.
 
-Lemma inv_true T: is_typed true_t T -> T = Bool.
+Lemma inv_true T: is_typed tmTrue T -> T = Bool.
 Proof.
   simpl.
   destruct T.
@@ -53,7 +354,7 @@ Proof.
   contradiction.
 Qed.
 
-Lemma inv_false T: is_typed false_t T -> T = Bool.
+Lemma inv_false T: is_typed tmFalse T -> T = Bool.
 Proof.
   simpl.
   destruct T.
@@ -61,10 +362,10 @@ Proof.
   contradiction.
 Qed.
 
-Lemma inv_if t1 t2 t3 T: is_typed (if_t t1 t2 t3) T -> is_typed t1 Bool /\ is_typed t2 T /\ is_typed t3 T.
+Lemma inv_if t1 t2 t3 T: is_typed (tmIf t1 t2 t3) T -> is_typed t1 Bool /\ is_typed t2 T /\ is_typed t3 T.
 Proof. trivial. Qed.
 
-Lemma inv_zero T: is_typed zero_t T -> T = Nat.
+Lemma inv_zero nv T: is_typed (tmNv nv) T -> T = Nat.
 Proof.
   simpl.
   destruct T.
@@ -72,7 +373,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma inv_succ t1 T: is_typed (succ_t t1) T -> T = Nat /\ is_typed t1 Nat.
+Lemma inv_succ t1 T: is_typed (tmSucc t1) T -> T = Nat /\ is_typed t1 Nat.
 Proof.
   simpl.
   destruct T.
@@ -82,7 +383,7 @@ Proof.
     + exact H.
 Qed.
 
-Lemma inv_pred t1 T: is_typed (pred_t t1) T -> T = Nat /\ is_typed t1 Nat.
+Lemma inv_pred t1 T: is_typed (tmPred t1) T -> T = Nat /\ is_typed t1 Nat.
 Proof.
   simpl.
   destruct T.
@@ -92,7 +393,7 @@ Proof.
     + exact H.
 Qed.
 
-Lemma inv_iszero t1 T: is_typed (iszero_t t1) T -> T = Bool /\ is_typed t1 Nat.
+Lemma inv_iszero t1 T: is_typed (tmIszero t1) T -> T = Bool /\ is_typed t1 Nat.
 Proof.
   simpl.
   destruct T.
@@ -142,64 +443,3 @@ Proof.
     rewrite H1, H2.
     reflexivity.
 Qed.
-
-Goal forall t1 t2 t3 t1' t2' t3', if_t t1 t2 t3 = if_t t1' t2' t3' -> t1 = t1'.
-Proof.
-  intros t1 t2 t3 t1' t2' t3' H.
-  injection H.
-  intros H3 H2 H1.
-  exact H1.
-Qed.
-
-Goal forall t1 t2 t3, if_t t1 t2 t3 <> true_t.
-Proof.
-  intros.
-  discriminate.
-Qed.
-
-Goal
-  forall s1 s2 s3 t1 t2 t3 t1' t2' t3',
-  (evaluates_to s1 t1 /\ evaluates_to s1 t1' -> t1 = t1')
-  -> evaluates_to (if_t s1 s2 s3) (if_t t1 t2 t3)
-  /\ evaluates_to (if_t s1 s2 s3) (if_t t1' t2' t3')
-  -> t1 = t1'.
-Proof.
-  intros s1 s2 s3 t1 t2 t3 t1' t2' t3' IH [H H'].
-  destruct s1.
-  - simpl in H, H'.
-    rewrite H in H'.
-    injection H'.
-    intros H3 H2 H1.
-    exact H1.
-  - simpl in H, H'.
-    rewrite H in H'.
-    injection H'.
-    intros H3 H2 H1.
-    exact H1.
-  - apply IH.
-    split.
-    apply H.
-    apply H'.
-  - destruct H.
-    contradiction.
-  - destruct H, H'.
-    apply IH.
-    split.
-    apply H.
-    apply H1.
-  - destruct H, H'.
-    apply IH.
-    split.
-    apply H.
-    apply H1.
-  - destruct H, H'.
-    apply IH.
-    split.
-    apply H.
-    apply H1.
-Qed.
-
-Example Bad1: evaluates_to (iszero_t (succ_t (pred_t zero_t))) false_t.
-Proof. simpl. trivial. Qed.
-Example Bad2: evaluates_to (iszero_t (succ_t (pred_t zero_t))) (iszero_t (succ_t zero_t)).
-Proof. simpl. trivial. Qed.
