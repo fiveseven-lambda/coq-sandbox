@@ -26,7 +26,7 @@ Fixpoint evaluates_to s t :=
   | _, _ => False
   end.
 
-Theorem if_determinacy s1 s2 s3 t :
+Lemma if_evaluation s1 s2 s3 t :
     evaluates_to (tmIf s1 s2 s3) t
     -> s1 = tmTrue /\ s2 = t
     \/ s1 = tmFalse /\ s3 = t
@@ -93,7 +93,7 @@ Proof.
     + contradiction.
 Qed.
 
-Theorem succ_determinacy s1 t :
+Lemma succ_evaluation s1 t :
   evaluates_to (tmSucc s1) t
   -> (exists sv, s1 = tmNv sv /\ t = tmNv (nvSucc sv))
   \/ (exists t1, t = tmSucc t1 /\ evaluates_to s1 t1).
@@ -154,7 +154,7 @@ Proof.
   - contradiction.
 Qed.
 
-Theorem pred_determinacy s1 t :
+Lemma pred_evaluation s1 t :
     evaluates_to (tmPred s1) t
     -> s1 = tmNv nvZero /\ t = tmNv nvZero
     \/ (exists nv, s1 = tmNv (nvSucc nv) /\ t = tmNv nv)
@@ -215,7 +215,7 @@ Proof.
   - contradiction.
 Qed.
 
-Theorem iszero_determinacy s1 t:
+Lemma iszero_evaluation s1 t:
   evaluates_to (tmIszero s1) t
   -> s1 = tmNv nvZero /\ t = tmTrue
   \/ (t = tmFalse /\ exists nv, s1 = tmNv (nvSucc nv))
@@ -284,18 +284,18 @@ Proof.
   - intros t t' [H _]. contradiction.
   - intros t t' [H _]. contradiction.
   - intros t t' [H H'].
-    destruct (if_determinacy s1 s2 s3 t) as [[Hs1T Hs2]|[[Hs1F Hs3]|[t1[Ht Ht1]]]].
+    destruct (if_evaluation s1 s2 s3 t) as [[Hs1T Hs2]|[[Hs1F Hs3]|[t1[Ht Ht1]]]].
     + exact H.
     + rewrite Hs1T in H'. rewrite <- Hs2. apply H'.
     + rewrite Hs1F in H'. rewrite <- Hs3. apply H'.
-    + destruct (if_determinacy s1 s2 s3 t') as [[Hs1T Hs2]|[[Hs1F Hs3]|[t1'[Ht' Ht1']]]].
+    + destruct (if_evaluation s1 s2 s3 t') as [[Hs1T Hs2]|[[Hs1F Hs3]|[t1'[Ht' Ht1']]]].
       * exact H'.
       * rewrite Hs1T in H. rewrite <- H. exact Hs2.
       * rewrite Hs1F in H. rewrite <- H. exact Hs3.
       * rewrite Ht, Ht'. rewrite (IHs1 t1 t1'). reflexivity. split. exact Ht1. exact Ht1'.
   - intros t t' [H _]. contradiction.
   - intros t t' [H H'].
-    destruct (succ_determinacy s t, succ_determinacy s t') as ([[sv[Hs Ht]]|[t1[Ht Ht1]]], [[sv'[Hs' Ht']]|[t1'[Ht' Ht1']]]).
+    destruct (succ_evaluation s t, succ_evaluation s t') as ([[sv[Hs Ht]]|[t1[Ht Ht1]]], [[sv'[Hs' Ht']]|[t1'[Ht' Ht1']]]).
     + exact H.
     + exact H'.
     + rewrite Hs in Hs'. injection Hs'. intro. rewrite Ht'. rewrite <- H0. exact Ht.
@@ -304,7 +304,7 @@ Proof.
     + rewrite Hs' in Ht1. contradiction.
     + rewrite Ht, Ht'. rewrite (IHs t1 t1'). reflexivity. split. exact Ht1. exact Ht1'.
   - intros t t' [H H'].
-    destruct (pred_determinacy s t, pred_determinacy s t') as ([[Hs Ht]|[[nv[Hs Ht]]|[t1[Ht Hs]]]], [[Hs' Ht']|[[nv'[Hs' Ht']]|[t1'[Ht' Hs']]]]).
+    destruct (pred_evaluation s t, pred_evaluation s t') as ([[Hs Ht]|[[nv[Hs Ht]]|[t1[Ht Hs]]]], [[Hs' Ht']|[[nv'[Hs' Ht']]|[t1'[Ht' Hs']]]]).
     + exact H.
     + exact H'.
     + rewrite Ht, Ht'. reflexivity.
@@ -319,7 +319,7 @@ Proof.
     + rewrite Hs' in Hs. contradiction.
     + rewrite Ht, Ht', (IHs t1 t1'). reflexivity. split. exact Hs. exact Hs'.
   - intros t t' [H H'].
-    destruct (iszero_determinacy s t, iszero_determinacy s t') as ([[Hs Ht]|[[Ht[nv Hs]]|[t1[Ht Hs]]]], [[Hs' Ht']|[[Ht'[nv' Hs']]|[t1'[Ht' Hs']]]]).
+    destruct (iszero_evaluation s t, iszero_evaluation s t') as ([[Hs Ht]|[[Ht[nv Hs]]|[t1[Ht Hs]]]], [[Hs' Ht']|[[Ht'[nv' Hs']]|[t1'[Ht' Hs']]]]).
     + exact H.
     + exact H'.
     + rewrite Ht, Ht'. reflexivity.
@@ -365,7 +365,7 @@ Qed.
 Lemma inv_if t1 t2 t3 T: is_typed (tmIf t1 t2 t3) T -> is_typed t1 Bool /\ is_typed t2 T /\ is_typed t3 T.
 Proof. trivial. Qed.
 
-Lemma inv_zero nv T: is_typed (tmNv nv) T -> T = Nat.
+Lemma inv_nv nv T: is_typed (tmNv nv) T -> T = Nat.
 Proof.
   simpl.
   destruct T.
@@ -421,7 +421,7 @@ Proof.
     + apply H1.
     + apply H2.
   - intros [H1 H2].
-    apply inv_zero in H1, H2.
+    apply inv_nv in H1, H2.
     rewrite H1, H2.
     reflexivity.
   - intros [H1 H2].
@@ -442,4 +442,88 @@ Proof.
     destruct H2 as [H2 _].
     rewrite H1, H2.
     reflexivity.
+Qed.
+
+Definition is_value t :=
+  match t with
+  | tmTrue | tmFalse | tmNv _ => True
+  | _ => False
+  end.
+
+Theorem type_safety: forall t T, is_typed t T -> is_value t \/ exists t', evaluates_to t t' /\ is_typed t' T.
+Proof.
+  induction t.
+  - left. simpl. trivial.
+  - left. simpl. trivial.
+  - right.
+    destruct (inv_if t1 t2 t3 T) as [H1 [H2 H3]].
+    exact H. destruct t1.
+    + simpl. exists t2. split. reflexivity. exact H2.
+    + simpl. exists t3. split. reflexivity. exact H3.
+    + destruct (IHt1 Bool) as [| [t' [HE HT]]]. exact H1.
+      * contradiction.
+      * exists (tmIf t' t2 t3). split.
+        -- simpl. split. exact HE. split. reflexivity. reflexivity.
+        -- simpl. split. exact HT. split. exact H2. exact H3.
+    + contradiction.
+    + contradiction.
+    + contradiction.
+    + destruct (IHt1 Bool) as [| [t' [HE HT]]]. exact H1.
+      * contradiction.
+      * exists (tmIf t' t2 t3). split.
+        -- simpl. split. exact HE. split. reflexivity. reflexivity.
+        -- simpl. split. exact HT. split. exact H2. exact H3.
+  - left. simpl. trivial.
+  - right. destruct T. contradiction. destruct t.
+    + contradiction.
+    + contradiction.
+    + destruct (IHt Nat) as [| [t' [HE HT]]]. exact H.
+      * contradiction.
+      * exists (tmSucc t'). split. apply HE. apply HT.
+    + exists (tmNv (nvSucc n)). split. simpl. reflexivity. exact H.
+    + destruct (IHt Nat) as [| [t' [HE HT]]]. exact H.
+      * contradiction.
+      * exists (tmSucc t'). split. apply HE. apply HT.
+    + destruct (IHt Nat) as [| [t' [HE HT]]]. exact H.
+      * contradiction.
+      * exists (tmSucc t'). split. apply HE. apply HT.
+    + destruct (IHt Nat) as [| [t' [HE HT]]]. exact H.
+      * contradiction.
+      * exists (tmSucc t'). split. apply HE. apply HT.
+  - right. destruct T. contradiction. destruct t.
+    + contradiction.
+    + contradiction.
+    + destruct (IHt Nat) as [| [t' [HE HT]]]. exact H.
+      * contradiction.
+      * exists (tmPred t'). split. apply HE. apply HT.
+    + destruct n.
+      * exists (tmNv nvZero). split. simpl. reflexivity. exact H.
+      * exists (tmNv n). split. simpl. reflexivity. exact H.
+    + destruct (IHt Nat) as [| [t' [HE HT]]]. exact H.
+      * contradiction.
+      * exists (tmPred t'). split. apply HE. apply HT.
+    + destruct (IHt Nat) as [| [t' [HE HT]]]. exact H.
+      * contradiction.
+      * exists (tmPred t'). split. apply HE. apply HT.
+    + destruct (IHt Nat) as [| [t' [HE HT]]]. exact H.
+      * contradiction.
+      * exists (tmPred t'). split. apply HE. apply HT.
+  - right. destruct T. 2: contradiction. destruct t.
+    + contradiction.
+    + contradiction.
+    + destruct (IHt Nat) as [| [t' [HE HT]]]. exact H.
+      * contradiction.
+      * exists (tmIszero t'). split. apply HE. apply HT.
+    + destruct n.
+      * exists tmTrue. split. simpl. reflexivity. exact H.
+      * exists tmFalse. split. simpl. reflexivity. exact H.
+    + destruct (IHt Nat) as [| [t' [HE HT]]]. exact H.
+      * contradiction.
+      * exists (tmIszero t'). split. apply HE. apply HT.
+    + destruct (IHt Nat) as [| [t' [HE HT]]]. exact H.
+      * contradiction.
+      * exists (tmIszero t'). split. apply HE. apply HT.
+    + destruct (IHt Nat) as [| [t' [HE HT]]]. exact H.
+      * contradiction.
+      * exists (tmIszero t'). split. apply HE. apply HT.
 Qed.
