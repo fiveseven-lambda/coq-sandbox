@@ -9,11 +9,12 @@ Inductive type :=
 
 (* 文脈 C *)
 Definition context := var -> type -> Prop.
+(* C, x1 : T1 *)
+Definition append (C:context) x1 T1 x2 T2 := x1 = x2 /\ T1 = T2 \/ C x2 T2.
+(* 空の文脈 *)
+Definition empty_context:context := fun x T => False.
 
-Definition append (C:context) x1 t1 x2 t2 := x1 = x2 /\ t1 = t2 \/ C x2 t2.
-Definition empty_context:context := fun x t => False.
-
-(* 値  u, v，項 s, t *)
+(* 値 u, v，項 s, t *)
 Inductive term :=
   | tmVal : value -> term
   | tmIf : term -> term -> term -> term (* if t then t else t *)
@@ -27,133 +28,61 @@ Definition tmTrue := tmVal vTrue.
 Definition tmFalse := tmVal vFalse.
 Definition tmAbs x T t := tmVal (vAbs x T t).
 
-(* [x -> v] t *)
-Fixpoint substitute (t:term) (x:var) (v:value) :=
-  match t with
-  | tmVal (vAbs y T t') => tmAbs y T (if eqb x y then t' else substitute t' x v)
-  | tmVal _ => t
-  | tmIf t1 t2 t3 => tmIf (substitute t1 x v) (substitute t2 x v) (substitute t3 x v)
-  | tmVar y => if eqb x y then tmVal v else tmVar y
-  | tmApp t1 t2 => tmApp (substitute t1 x v) (substitute t2 x v)
-  end.
-
-Fixpoint evaluates_to s t :=
-  match s, t with
-  | tmIf (tmVal vTrue) s2 _, t => s2 = t
-  | tmIf (tmVal vFalse) _ s3, t => s3 = t
-  | tmIf s1 s2 s3, tmIf t1 t2 t3 => evaluates_to s1 t1 /\ s2 = t2 /\ s3 = t3
-  | tmApp (tmVal (vAbs x T s1)) (tmVal v), t => t = substitute s1 x v
-  | tmApp (tmVal (vAbs x T s1)) s2, tmApp t1 t2 => tmAbs x T s1 = t1 /\ evaluates_to s2 t2
-  | tmApp s1 s2, tmApp t1 t2 => evaluates_to s1 t1 /\ s2 = t2
+(* C ⊢ t : T *)
+Fixpoint is_type_candidate C t T {struct t} :=
+  match t, T with
+  | tmVal vTrue, tyBool => True
+  | tmVal vFalse, tyBool => True
+  | tmVal (vAbs x T1 t1), tyFun T2 T3 => T1 = T2 /\ is_type_candidate (append C x T1) t1 T3
+  | tmIf t1 t2 t3, T1 => is_type_candidate C t1 tyBool /\ is_type_candidate C t2 T1 /\ is_type_candidate C t3 T1
+  | tmVar x, T1 => C x T1
+  | tmApp t1 t2, T1 => exists T2, is_type_candidate C t1 (tyFun T2 T1) /\ is_type_candidate C t2 T2
   | _, _ => False
   end.
 
-Definition is_value t := match t with tmVal _ => True | _ => False end.
-Definition is_normal s := forall t, ~ evaluates_to s t.
+Definition is_typed t T :=
+  is_type_candidate empty_context t T
+  /\ forall S, is_type_candidate empty_context t S -> S = T.
 
-Theorem value_normal t : is_value t -> is_normal t.
+Example type_of_true : is_typed tmTrue tyBool.
 Proof.
-  destruct t.
-  - intros _ t H. contradiction.
-  - contradiction.
-  - contradiction.
-  - contradiction.
+  split.
+  - simpl.
+    trivial.
+  - destruct S.
+    reflexivity.
+    contradiction.
+Qed.
+Example type_of_false : is_typed tmFalse tyBool.
+Proof.
+  split.
+  - simpl.
+    trivial.
+  - destruct S.
+    reflexivity.
+    contradiction.
 Qed.
 
-Goal ~ forall t, is_normal t -> is_value t.
+Goal
+  let t := (tmAbs 0 tyBool (tmAbs 0 (tyFun tyBool tyBool) (tmApp (tmVar 0) (tmVar 0)))) in
+  let T := (tyFun tyBool (tyFun (tyFun tyBool tyBool) tyBool)) in
+  is_typed t T.
 Proof.
-  intro.
-  apply (H (tmIf (tmAbs 0 tyBool tmTrue) tmTrue tmTrue)).
-  intros t H0. simpl in H0. destruct t. trivial. destruct H0. trivial. trivial. trivial.
-Qed.
-
-Theorem determinacy : forall s t t', evaluates_to s t /\ evaluates_to s t' -> t = t'.
-Proof.
-  induction s.
-  - intros t t' [H _]. contradiction.
-  - destruct s1.
-    + destruct v.
-      * intros t t' [H0 H1]. simpl in H0, H1. rewrite <- H0, H1. reflexivity.
-      * intros t t' [H0 H1]. simpl in H0, H1. rewrite <- H0, H1. reflexivity.
-      * intros t1 t' [H _]. simpl in H. destruct t1. contradiction. destruct H. contradiction. contradiction. contradiction.
-    + intros t t' [H0 H1]. destruct t, t'.
-      * contradiction. * contradiction. * contradiction. * contradiction. * contradiction.
-      * destruct (IHs1 t1 t'1). split. apply H0. apply H1.
-        destruct H0 as [_ [H00 H01]].
-        destruct H1 as [_ [H10 H11]].
-        rewrite <- H00, <- H01, <- H10, <- H11.
+  intros t T.
+  assert (is_type_candidate empty_context t T). {
+    split. reflexivity. split. reflexivity.
+    exists tyBool. split.
+    - left. split. reflexivity. reflexivity.
+    - right. left. split. reflexivity. reflexivity.
+  }
+  split. exact H. destruct S.
+  - contradiction.
+  - destruct S2 as [| S21 S22].
+    + intros [_ H0]. contradiction.
+    + destruct S22.
+      * intros [HS1 [HS21 _]].
+        rewrite <-HS1, <-HS21.
         reflexivity.
-      * contradiction. * contradiction. * contradiction. * contradiction. * contradiction.
-      * contradiction. * contradiction. * contradiction. * contradiction. * contradiction.
-    + intros t t' [H0 H1]. destruct t, t'.
-      * contradiction. * contradiction. * contradiction. * contradiction. * contradiction.
-      * destruct H0. contradiction.
-      * contradiction. * contradiction. * contradiction. * contradiction. * contradiction.
-      * contradiction. * contradiction. * contradiction. * contradiction. * contradiction.
-    + intros t t' [H0 H1]. destruct t, t'.
-      * contradiction. * contradiction. * contradiction. * contradiction. * contradiction.
-      * destruct (IHs1 t1 t'1). split. apply H0. apply H1.
-        destruct H0 as [_ [H00 H01]].
-        destruct H1 as [_ [H10 H11]].
-        rewrite <- H00, <- H01, <- H10, <- H11.
-        reflexivity.
-      * contradiction. * contradiction. * contradiction. * contradiction. * contradiction.
-      * contradiction. * contradiction. * contradiction. * contradiction. * contradiction.
-  - intros t t' [H _]. contradiction.
-  - destruct s1.
-    + intros t t' [H0 H1]. destruct v.
-      * destruct t, t'.
-        -- contradiction. -- contradiction. 
-        -- destruct s2.
-          ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction.
-        -- contradiction. -- contradiction. -- contradiction. -- contradiction. -- contradiction.
-        -- contradiction. -- contradiction. -- contradiction. -- contradiction. -- contradiction.
-        -- contradiction. -- contradiction.
-        -- destruct H0. contradiction.
-      * destruct t, t'.
-        -- contradiction. -- contradiction. 
-        -- destruct s2.
-          ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction.
-        -- contradiction. -- contradiction. -- contradiction. -- contradiction. -- contradiction.
-        -- contradiction. -- contradiction. -- contradiction. -- contradiction. -- contradiction.
-        -- contradiction. -- contradiction.
-        -- destruct H0. contradiction.
-      * destruct s2.
-        -- simpl in H0, H1. rewrite H0, H1. reflexivity.
-        -- destruct t, t'.
-           ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction.
-           ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction.
-           ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction.
-           ++ destruct (IHs2 t3 t'2). split. apply H0. apply H1.
-              destruct H0 as [H00 _]. destruct H1 as [H10 _].
-              rewrite <- H00, <- H10. reflexivity.
-        -- destruct t, t'.
-           ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction.
-           ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction.
-           ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction.
-           ++ destruct H0. contradiction.
-        -- destruct t, t'.
-           ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction.
-           ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction.
-           ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction. ++ contradiction.
-           ++ destruct (IHs2 t3 t'2). split. apply H0. apply H1.
-              destruct H0 as [H00 _]. destruct H1 as [H10 _].
-              rewrite <- H00, <- H10. reflexivity.
-    + intros t t' [H0 H1]. destruct t, t'.
-      * contradiction. * contradiction. * contradiction. * contradiction. * contradiction.
-      * contradiction. * contradiction. * contradiction. * contradiction. * contradiction.
-      * contradiction. * contradiction. * contradiction. * contradiction. * contradiction.
-      * destruct (IHs1 t1 t'1). split. apply H0. apply H1.
-        destruct H0 as [_ H01]. destruct H1 as [_ H11].
-        rewrite <- H01, <- H11. reflexivity.
-    + intros t t' [H _]. destruct t.
-      * contradiction. * contradiction. * contradiction.
-      * destruct H. contradiction.
-    + intros t t'[H0 H1]. destruct t, t'.
-      * contradiction. * contradiction. * contradiction. * contradiction. * contradiction.
-      * contradiction. * contradiction. * contradiction. * contradiction. * contradiction.
-      * contradiction. * contradiction. * contradiction. * contradiction. * contradiction.
-      * destruct (IHs1 t1 t'1). split. apply H0. apply H1.
-        destruct H0 as [_ H01]. destruct H1 as [_ H11].
-        rewrite <- H01, <- H11. reflexivity.
+      * intros [_[_[S22[[[_ HS221]|[[_ HS222]|HS223]] _]]]].
+        discriminate. discriminate. contradiction.
 Qed.
